@@ -7,7 +7,9 @@ from lib.pytorch_misc import intersect_2d, argsort_desc
 from lib.fpn.box_intersections_cpu.bbox import bbox_overlaps
 from config import MODES
 import sys
+
 np.set_printoptions(precision=3)
+
 
 class BasicSceneGraphEvaluator:
     def __init__(self, mode, multiple_preds=False):
@@ -86,7 +88,8 @@ class BasicSceneGraphEvaluator:
 
     def evaluate_scene_graph_entry(self, gt_entry, pred_scores, viz_dict=None, iou_thresh=0.5):
         res = evaluate_from_dict(gt_entry, pred_scores, self.mode, self.result_dict,
-                                  viz_dict=viz_dict, iou_thresh=iou_thresh, multiple_preds=self.multiple_preds, rel_cats=self.rel_cats)
+                                 viz_dict=viz_dict, iou_thresh=iou_thresh,
+                                 multiple_preds=self.multiple_preds, rel_cats=self.rel_cats)
         # self.print_stats()
         return res
 
@@ -99,6 +102,7 @@ class BasicSceneGraphEvaluator:
             for rel_cat_id, rel_cat_name in self.rel_cats.items():
                 print('R@%i: %f' % (k, np.mean(v[rel_cat_name])), rel_cat_name)
             print('~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~')
+
 
 def evaluate_from_dict(gt_entry, pred_entry, mode, result_dict, multiple_preds=False,
                        viz_dict=None, rel_cats=None, **kwargs):
@@ -120,7 +124,6 @@ def evaluate_from_dict(gt_entry, pred_entry, mode, result_dict, multiple_preds=F
     for rel in gt_rels:
         gt_rels_nums[rel[2]] += 1
         gt_rels_nums[0] += 1
-
 
     pred_rel_inds = pred_entry['pred_rel_inds']
     rel_scores = pred_entry['rel_scores']
@@ -149,9 +152,10 @@ def evaluate_from_dict(gt_entry, pred_entry, mode, result_dict, multiple_preds=F
         rel_scores = rel_scores[pred_inds_per_gt]
 
         # Now sort the matching ones
-        rel_scores_sorted = argsort_desc(rel_scores[:,1:])
-        rel_scores_sorted[:,1] += 1
-        rel_scores_sorted = np.column_stack((pred_rel_inds[rel_scores_sorted[:,0]], rel_scores_sorted[:,1]))
+        rel_scores_sorted = argsort_desc(rel_scores[:, 1:])
+        rel_scores_sorted[:, 1] += 1
+        rel_scores_sorted = np.column_stack(
+            (pred_rel_inds[rel_scores_sorted[:, 0]], rel_scores_sorted[:, 1]))
 
         matches = intersect_2d(rel_scores_sorted, gt_rels)
         for k in result_dict[mode + '_recall']:
@@ -163,24 +167,25 @@ def evaluate_from_dict(gt_entry, pred_entry, mode, result_dict, multiple_preds=F
 
     if multiple_preds:
         obj_scores_per_rel = obj_scores[pred_rel_inds].prod(1)
-        overall_scores = obj_scores_per_rel[:,None] * rel_scores[:,1:]
+        overall_scores = obj_scores_per_rel[:, None] * rel_scores[:, 1:]
         score_inds = argsort_desc(overall_scores)[:100]
-        pred_rels = np.column_stack((pred_rel_inds[score_inds[:,0]], score_inds[:,1]+1))
-        predicate_scores = rel_scores[score_inds[:,0], score_inds[:,1]+1]
+        pred_rels = np.column_stack((pred_rel_inds[score_inds[:, 0]], score_inds[:, 1] + 1))
+        predicate_scores = rel_scores[score_inds[:, 0], score_inds[:, 1] + 1]
     else:
-        pred_rels = np.column_stack((pred_rel_inds, 1+rel_scores[:,1:].argmax(1)))
-        predicate_scores = rel_scores[:,1:].max(1)
+        pred_rels = np.column_stack((pred_rel_inds, 1 + rel_scores[:, 1:].argmax(1)))
+        predicate_scores = rel_scores[:, 1:].max(1)
 
     pred_to_gt, pred_5ples, rel_scores = evaluate_recall(
-                gt_rels, gt_boxes, gt_classes,
-                pred_rels, pred_boxes, pred_classes,
-                predicate_scores, obj_scores, phrdet= mode=='phrdet',rel_cats=rel_cats,
-                **kwargs)
+        gt_rels, gt_boxes, gt_classes,
+        pred_rels, pred_boxes, pred_classes,
+        predicate_scores, obj_scores, phrdet=mode == 'phrdet', rel_cats=rel_cats,
+        **kwargs)
 
     for k in result_dict[mode + '_recall']:
         for rel_cat_id, rel_cat_name in rel_cats.items():
             match = reduce(np.union1d, pred_to_gt[rel_cat_name][:k])
-            rec_i = float(len(match)) / (float(gt_rels_nums[rel_cat_id]) + sys.float_info.min) #float(gt_rels.shape[0])
+            rec_i = float(len(match)) / (float(
+                gt_rels_nums[rel_cat_id]) + sys.float_info.min)  # float(gt_rels.shape[0])
             result_dict[mode + '_recall'][k][rel_cat_name].append(rec_i)
 
     return pred_to_gt, pred_5ples, rel_scores
@@ -228,7 +233,7 @@ def evaluate_recall(gt_rels, gt_boxes, gt_classes,
              rel_scores: [cls_0score, cls1_score, relscore]
                    """
     if pred_rels.size == 0:
-        return [[]], np.zeros((0,5)), np.zeros(0)
+        return [[]], np.zeros((0, 5)), np.zeros(0)
 
     num_gt_boxes = gt_boxes.shape[0]
     num_gt_relations = gt_rels.shape[0]
@@ -239,14 +244,14 @@ def evaluate_recall(gt_rels, gt_boxes, gt_classes,
                                                 gt_classes,
                                                 gt_boxes)
     num_boxes = pred_boxes.shape[0]
-    assert pred_rels[:,:2].max() < pred_classes.shape[0]
+    assert pred_rels[:, :2].max() < pred_classes.shape[0]
 
     # Exclude self rels
     # assert np.all(pred_rels[:,0] != pred_rels[:,1])
-    assert np.all(pred_rels[:,2] > 0)
+    assert np.all(pred_rels[:, 2] > 0)
 
     pred_triplets, pred_triplet_boxes, relation_scores = \
-        _triplet(pred_rels[:,2], pred_rels[:,:2], pred_classes, pred_boxes,
+        _triplet(pred_rels[:, 2], pred_rels[:, :2], pred_classes, pred_boxes,
                  rel_scores, cls_scores)
 
     scores_overall = relation_scores.prod(1)
@@ -267,7 +272,7 @@ def evaluate_recall(gt_rels, gt_boxes, gt_classes,
 
     # Contains some extra stuff for visualization. Not needed.
     pred_5ples = np.column_stack((
-        pred_rels[:,:2],
+        pred_rels[:, :2],
         pred_triplets[:, [0, 2, 1]],
     ))
 
@@ -308,7 +313,7 @@ def _triplet(predicates, relations, classes, boxes,
 
 
 def _compute_pred_matches(gt_triplets, pred_triplets,
-                 gt_boxes, pred_boxes, iou_thresh, phrdet=False, rel_cats=None):
+                          gt_boxes, pred_boxes, iou_thresh, phrdet=False, rel_cats=None):
     """
     Given a set of predicted triplets, return the list of matching GT's for each of the
     given predictions
@@ -338,13 +343,13 @@ def _compute_pred_matches(gt_triplets, pred_triplets,
             gt_box_union = np.concatenate((gt_box_union.min(0)[:2], gt_box_union.max(0)[2:]), 0)
 
             box_union = boxes.reshape((-1, 2, 4))
-            box_union = np.concatenate((box_union.min(1)[:,:2], box_union.max(1)[:,2:]), 1)
+            box_union = np.concatenate((box_union.min(1)[:, :2], box_union.max(1)[:, 2:]), 1)
 
             inds = bbox_overlaps(gt_box_union[None], box_union)[0] >= iou_thresh
 
         else:
-            sub_iou = bbox_overlaps(gt_box[None,:4], boxes[:, :4])[0]
-            obj_iou = bbox_overlaps(gt_box[None,4:], boxes[:, 4:])[0]
+            sub_iou = bbox_overlaps(gt_box[None, :4], boxes[:, :4])[0]
+            obj_iou = bbox_overlaps(gt_box[None, 4:], boxes[:, 4:])[0]
 
             inds = (sub_iou >= iou_thresh) & (obj_iou >= iou_thresh)
 

@@ -57,8 +57,10 @@ print(print_para(detector), flush=True)
 def get_optim(lr):
     # Lower the learning rate on the VGG fully connected layers by 1/10th. It's a hack, but it helps
     # stabilize the models.
-    fc_params = [p for n,p in detector.named_parameters() if n.startswith('roi_fmap') and p.requires_grad]
-    non_fc_params = [p for n,p in detector.named_parameters() if not n.startswith('roi_fmap') and p.requires_grad]
+    fc_params = [p for n, p in detector.named_parameters() if
+                 n.startswith('roi_fmap') and p.requires_grad]
+    non_fc_params = [p for n, p in detector.named_parameters() if
+                     not n.startswith('roi_fmap') and p.requires_grad]
     params = [{'params': fc_params, 'lr': lr / 10.0}, {'params': non_fc_params}]
     # params = [p for n,p in detector.named_parameters() if p.requires_grad]
 
@@ -102,13 +104,14 @@ def train_epoch(epoch_num):
     tr = []
     start = time.time()
     for b, batch in enumerate(train_loader):
-        tr.append(train_batch(batch, verbose=b % (conf.print_interval*10) == 0)) #b == 0))
+        tr.append(train_batch(batch, verbose=b % (conf.print_interval * 10) == 0))  # b == 0))
 
         if b % conf.print_interval == 0 and b >= conf.print_interval:
             mn = pd.concat(tr[-conf.print_interval:], axis=1).mean(1)
             time_per_batch = (time.time() - start) / conf.print_interval
             print("\ne{:2d}b{:5d}/{:5d} {:.3f}s/batch, {:.1f}m/epoch".format(
-                epoch_num, b, len(train_loader), time_per_batch, len(train_loader) * time_per_batch / 60))
+                epoch_num, b, len(train_loader), time_per_batch,
+                len(train_loader) * time_per_batch / 60))
             print(mn)
             print('-----------', flush=True)
             start = time.time()
@@ -175,7 +178,7 @@ def val_batch(batch_num, b, evaluator):
         assert np.all(objs_i[rels_i[:, 0]] > 0) and np.all(objs_i[rels_i[:, 1]] > 0)
 
         pred_entry = {
-            'pred_boxes': boxes_i * BOX_SCALE/IM_SCALE,
+            'pred_boxes': boxes_i * BOX_SCALE / IM_SCALE,
             'pred_classes': objs_i,
             'pred_rel_inds': rels_i,
             'obj_scores': obj_scores_i,
@@ -196,12 +199,14 @@ for epoch in range(start_epoch + 1, start_epoch + 1 + conf.num_epochs):
     if conf.save_dir is not None:
         torch.save({
             'epoch': epoch,
-            'state_dict': detector.state_dict(), #{k:v for k,v in detector.state_dict().items() if not k.startswith('detector.')},
+            'state_dict': detector.state_dict(),
+            # {k:v for k,v in detector.state_dict().items() if not k.startswith('detector.')},
             # 'optimizer': optimizer.state_dict(),
         }, os.path.join(conf.save_dir, '{}-{}.tar'.format('vgrel', epoch)))
 
     mAp = val_epoch()
     scheduler.step(mAp)
-    if any([pg['lr'] <= (conf.lr * conf.num_gpus * conf.batch_size)/99.0 for pg in optimizer.param_groups]):
+    if any([pg['lr'] <= (conf.lr * conf.num_gpus * conf.batch_size) / 99.0 for pg in
+            optimizer.param_groups]):
         print("exiting training early", flush=True)
         break

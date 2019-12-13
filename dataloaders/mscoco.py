@@ -5,10 +5,12 @@ from pycocotools.coco import COCO
 from PIL import Image
 from lib.fpn.anchor_targets import anchor_target_layer
 from torchvision.transforms import Resize, Compose, ToTensor, Normalize
-from dataloaders.image_transforms import SquarePad, Grayscale, Brightness, Sharpness, Contrast, RandomOrder, Hue, random_crop
+from dataloaders.image_transforms import SquarePad, Grayscale, Brightness, Sharpness, Contrast, \
+    RandomOrder, Hue, random_crop
 import numpy as np
 from dataloaders.blob import Blob
 import torch
+
 
 class CocoDetection(Dataset):
     """
@@ -25,16 +27,15 @@ class CocoDetection(Dataset):
         self.coco = COCO(self.ann_file)
         self.ids = [k for k in self.coco.imgs.keys() if len(self.coco.imgToAnns[k]) > 0]
 
-
         tform = []
         if self.is_train:
-             tform.append(RandomOrder([
-                 Grayscale(),
-                 Brightness(),
-                 Contrast(),
-                 Sharpness(),
-                 Hue(),
-             ]))
+            tform.append(RandomOrder([
+                Grayscale(),
+                Brightness(),
+                Contrast(),
+                Sharpness(),
+                Hue(),
+            ]))
 
         tform += [
             SquarePad(),
@@ -46,10 +47,10 @@ class CocoDetection(Dataset):
         self.transform_pipeline = Compose(tform)
         self.ind_to_classes = ['__background__'] + [v['name'] for k, v in self.coco.cats.items()]
         # COCO inds are weird (84 inds in total but a bunch of numbers are skipped)
-        self.id_to_ind = {coco_id:(ind+1) for ind, coco_id in enumerate(self.coco.cats.keys())}
+        self.id_to_ind = {coco_id: (ind + 1) for ind, coco_id in enumerate(self.coco.cats.keys())}
         self.id_to_ind[0] = 0
 
-        self.ind_to_id = {x:y for y,x in self.id_to_ind.items()}
+        self.ind_to_id = {x: y for y, x in self.id_to_ind.items()}
 
     @property
     def is_train(self):
@@ -78,9 +79,9 @@ class CocoDetection(Dataset):
         # else:
         gt_boxes = np.array([x['bbox'] for x in anns], dtype=np.float32)
 
-        if np.any(gt_boxes[:, [0,1]] < 0):
+        if np.any(gt_boxes[:, [0, 1]] < 0):
             raise ValueError("GT boxes empty columns")
-        if np.any(gt_boxes[:, [2,3]] < 0):
+        if np.any(gt_boxes[:, [2, 3]] < 0):
             raise ValueError("GT boxes empty h/w")
         gt_boxes[:, [2, 3]] += gt_boxes[:, [0, 1]]
 
@@ -106,9 +107,9 @@ class CocoDetection(Dataset):
 
         img_scale_factor = IM_SCALE / max(w, h)
         if h > w:
-            im_size = (IM_SCALE, int(w*img_scale_factor), img_scale_factor)
+            im_size = (IM_SCALE, int(w * img_scale_factor), img_scale_factor)
         elif h < w:
-            im_size = (int(h*img_scale_factor), IM_SCALE, img_scale_factor)
+            im_size = (int(h * img_scale_factor), IM_SCALE, img_scale_factor)
         else:
             im_size = (IM_SCALE, IM_SCALE, img_scale_factor)
 
@@ -151,6 +152,7 @@ class CocoDataLoader(torch.utils.data.DataLoader):
     Iterates through the data, filtering out None,
      but also loads everything as a (cuda) variable
     """
+
     # def __iter__(self):
     #     for x in super(CocoDataLoader, self).__iter__():
     #         if isinstance(x, tuple) or isinstance(x, list):
@@ -162,7 +164,7 @@ class CocoDataLoader(torch.utils.data.DataLoader):
     def splits(cls, train_data, val_data, batch_size=3, num_workers=1, num_gpus=3, **kwargs):
         train_load = cls(
             dataset=train_data,
-            batch_size=batch_size*num_gpus,
+            batch_size=batch_size * num_gpus,
             shuffle=True,
             num_workers=num_workers,
             collate_fn=lambda x: coco_collate(x, num_gpus=num_gpus, is_train=True),
@@ -172,7 +174,7 @@ class CocoDataLoader(torch.utils.data.DataLoader):
         )
         val_load = cls(
             dataset=val_data,
-            batch_size=batch_size*num_gpus,
+            batch_size=batch_size * num_gpus,
             shuffle=False,
             num_workers=num_workers,
             collate_fn=lambda x: coco_collate(x, num_gpus=num_gpus, is_train=False),

@@ -73,8 +73,9 @@ def load_unscaled(fn):
     image_unpadded = Image.open(fn).convert('RGB')
     im_scale = 1024.0 / max(image_unpadded.size)
 
-    image = image_unpadded.resize((int(im_scale * image_unpadded.size[0]), int(im_scale * image_unpadded.size[1])),
-                                  resample=Image.BICUBIC)
+    image = image_unpadded.resize(
+        (int(im_scale * image_unpadded.size[0]), int(im_scale * image_unpadded.size[1])),
+        resample=Image.BICUBIC)
     return image
 
 
@@ -181,7 +182,8 @@ def val_batch(batch_num, b, evaluator, thrs=(20, 50, 100)):
         gt_cls = gt_entry['gt_classes'][gt_ind]
         if gt_ind not in gt_ind2name:
             has_seen_gt[gt_cls] += 1
-            gt_ind2name[gt_ind] = '{}-GT{}'.format(train.ind_to_classes[gt_cls], has_seen_gt[gt_cls])
+            gt_ind2name[gt_ind] = '{}-GT{}'.format(train.ind_to_classes[gt_cls],
+                                                   has_seen_gt[gt_cls])
         return gt_ind2name[gt_ind]
 
     matching_pred5ples = pred_5ples[np.array([len(x) > 0 for x in pred_to_gt])]
@@ -214,7 +216,8 @@ def val_batch(batch_num, b, evaluator, thrs=(20, 50, 100)):
 
         if fiveple[0] in pred_ind2name:
             if fiveple[1] in pred_ind2name:
-                badedges[(pred_ind2name[fiveple[0]], pred_ind2name[fiveple[1]])] = train.ind_to_predicates[fiveple[4]]
+                badedges[(pred_ind2name[fiveple[0]], pred_ind2name[fiveple[1]])] = \
+                    train.ind_to_predicates[fiveple[4]]
 
     theimg = load_unscaled(val.filenames[batch_num])
     theimg2 = theimg.copy()

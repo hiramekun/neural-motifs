@@ -18,6 +18,7 @@ from lib.fpn.box_utils import bbox_overlaps
 # from ad3 import factor_graph as fg
 from time import time
 
+
 def filter_dets(boxes, obj_scores, obj_classes, rel_inds, pred_scores):
     """
     Filters detections....
@@ -41,10 +42,10 @@ def filter_dets(boxes, obj_scores, obj_classes, rel_inds, pred_scores):
     assert rel_inds.size(1) == 2
     assert pred_scores.size(0) == num_rel
 
-    obj_scores0 = obj_scores.data[rel_inds[:,0]]
-    obj_scores1 = obj_scores.data[rel_inds[:,1]]
+    obj_scores0 = obj_scores.data[rel_inds[:, 0]]
+    obj_scores1 = obj_scores.data[rel_inds[:, 1]]
 
-    pred_scores_max, pred_classes_argmax = pred_scores.data[:,1:].max(1)
+    pred_scores_max, pred_classes_argmax = pred_scores.data[:, 1:].max(1)
     pred_classes_argmax = pred_classes_argmax + 1
 
     rel_scores_argmaxed = pred_scores_max * obj_scores0 * obj_scores1

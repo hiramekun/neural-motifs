@@ -10,6 +10,7 @@ from lib.word_vectors import obj_edge_vectors
 from .highway_lstm_cuda.alternating_highway_lstm import block_orthogonal
 import numpy as np
 
+
 def get_dropout_mask(dropout_probability: float, tensor_for_masking: torch.autograd.Variable):
     """
     Computes and returns an element-wise dropout mask for a given tensor, where
@@ -38,7 +39,8 @@ def get_dropout_mask(dropout_probability: float, tensor_for_masking: torch.autog
 
 
 class DecoderRNN(torch.nn.Module):
-    def __init__(self, classes, embed_dim, inputs_dim, hidden_dim, recurrent_dropout_probability=0.2,
+    def __init__(self, classes, embed_dim, inputs_dim, hidden_dim,
+                 recurrent_dropout_probability=0.2,
                  use_highway=True, use_input_projection_bias=True):
         """
         Initializes the RNN
@@ -60,8 +62,8 @@ class DecoderRNN(torch.nn.Module):
         self.inputs_dim = inputs_dim
         self.nms_thresh = 0.3
 
-        self.recurrent_dropout_probability=recurrent_dropout_probability
-        self.use_highway=use_highway
+        self.recurrent_dropout_probability = recurrent_dropout_probability
+        self.use_highway = use_highway
         # We do the projections for all the gates all at once, so if we are
         # using highway layers, we need some extra projections, which is
         # why the sizes of the Linear layers change here depending on this flag.
@@ -120,10 +122,12 @@ class DecoderRNN(torch.nn.Module):
         timestep_output = output_gate * torch.tanh(memory)
 
         if self.use_highway:
-            highway_gate = torch.sigmoid(projected_input[:, 4 * self.hidden_size:5 * self.hidden_size] +
-                                         projected_state[:, 4 * self.hidden_size:5 * self.hidden_size])
+            highway_gate = torch.sigmoid(
+                projected_input[:, 4 * self.hidden_size:5 * self.hidden_size] +
+                projected_state[:, 4 * self.hidden_size:5 * self.hidden_size])
             highway_input_projection = projected_input[:, 5 * self.hidden_size:6 * self.hidden_size]
-            timestep_output = highway_gate * timestep_output + (1 - highway_gate) * highway_input_projection
+            timestep_output = highway_gate * timestep_output + (
+                        1 - highway_gate) * highway_input_projection
 
         # Only do dropout if the dropout prob is > 0.0 and we are in training mode.
         if dropout_mask is not None and self.training:
@@ -163,9 +167,9 @@ class DecoderRNN(torch.nn.Module):
         # We're just doing an LSTM decoder here so ignore states, etc
         if initial_state is None:
             previous_memory = Variable(sequence_tensor.data.new()
-                                                  .resize_(batch_size, self.hidden_size).fill_(0))
+                                       .resize_(batch_size, self.hidden_size).fill_(0))
             previous_state = Variable(sequence_tensor.data.new()
-                                                 .resize_(batch_size, self.hidden_size).fill_(0))
+                                      .resize_(batch_size, self.hidden_size).fill_(0))
         else:
             assert len(initial_state) == 2
             previous_state = initial_state[0].squeeze(0)
@@ -197,7 +201,8 @@ class DecoderRNN(torch.nn.Module):
             timestep_input = torch.cat((sequence_tensor[start_ind:end_ind], previous_embed), 1)
 
             previous_state, previous_memory = self.lstm_equations(timestep_input, previous_state,
-                                                                  previous_memory, dropout_mask=dropout_mask)
+                                                                  previous_memory,
+                                                                  dropout_mask=dropout_mask)
 
             pred_dist = self.out(previous_state)
             out_dists.append(pred_dist)
@@ -210,7 +215,7 @@ class DecoderRNN(torch.nn.Module):
                 if is_bg.dim() > 0:
                     labels_to_embed[is_bg.squeeze(1)] = nonzero_pred[is_bg.squeeze(1)]
                 out_commitments.append(labels_to_embed)
-                previous_embed = self.obj_embed(labels_to_embed+1)
+                previous_embed = self.obj_embed(labels_to_embed + 1)
             else:
                 assert l_batch == 1
                 out_dist_sample = F.softmax(pred_dist, dim=1)
@@ -224,7 +229,7 @@ class DecoderRNN(torch.nn.Module):
                 #     best_int = int(best_ind.data[0])
                 #     domains_allowed[i:, best_int] *= (1 - is_overlap[i, i:, best_int])
                 out_commitments.append(best_ind)
-                previous_embed = self.obj_embed(best_ind+1)
+                previous_embed = self.obj_embed(best_ind + 1)
 
         # Do NMS here as a post-processing step
         if boxes_for_nms is not None and not self.training:
@@ -233,16 +238,17 @@ class DecoderRNN(torch.nn.Module):
             ).cpu().numpy() >= self.nms_thresh
             # is_overlap[np.arange(boxes_for_nms.size(0)), np.arange(boxes_for_nms.size(0))] = False
 
-            out_dists_sampled = F.softmax(torch.cat(out_dists,0), 1).data.cpu().numpy()
-            out_dists_sampled[:,0] = 0
+            out_dists_sampled = F.softmax(torch.cat(out_dists, 0), 1).data.cpu().numpy()
+            out_dists_sampled[:, 0] = 0
 
             out_commitments = out_commitments[0].data.new(len(out_commitments)).fill_(0)
 
             for i in range(out_commitments.size(0)):
-                box_ind, cls_ind = np.unravel_index(out_dists_sampled.argmax(), out_dists_sampled.shape)
+                box_ind, cls_ind = np.unravel_index(out_dists_sampled.argmax(),
+                                                    out_dists_sampled.shape)
                 out_commitments[int(box_ind)] = int(cls_ind)
-                out_dists_sampled[is_overlap[box_ind,:,cls_ind], cls_ind] = 0.0
-                out_dists_sampled[box_ind] = -1.0 # This way we won't re-sample
+                out_dists_sampled[is_overlap[box_ind, :, cls_ind], cls_ind] = 0.0
+                out_dists_sampled[box_ind] = -1.0  # This way we won't re-sample
 
             out_commitments = Variable(out_commitments)
         else:

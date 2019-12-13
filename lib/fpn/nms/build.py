@@ -1,6 +1,7 @@
 import os
 import torch
 from torch.utils.ffi import create_extension
+
 # Might have to export PATH=/usr/local/cuda-8.0/bin${PATH:+:${PATH}}
 
 sources = []
@@ -32,4 +33,3 @@ ffi = create_extension(
 
 if __name__ == '__main__':
     ffi.build()
-

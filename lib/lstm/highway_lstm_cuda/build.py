@@ -16,14 +16,14 @@ extra_objects = ['src/highway_lstm_kernel.cu.o']
 extra_objects = [os.path.join(this_file, fname) for fname in extra_objects]
 
 ffi = create_extension(
-        '_ext.highway_lstm_layer',
-        headers=headers,
-        sources=sources,
-        define_macros=defines,
-        relative_to=__file__,
-        with_cuda=with_cuda,
-        extra_objects=extra_objects
-        )
+    '_ext.highway_lstm_layer',
+    headers=headers,
+    sources=sources,
+    define_macros=defines,
+    relative_to=__file__,
+    with_cuda=with_cuda,
+    extra_objects=extra_objects
+)
 
 if __name__ == '__main__':
     ffi.build()

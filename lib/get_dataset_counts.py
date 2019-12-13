@@ -9,7 +9,8 @@ from lib.fpn.box_intersections_cpu.bbox import bbox_overlaps
 from lib.pytorch_misc import nonintersecting_2d_inds
 
 
-def get_counts(train_data=VG(mode='train', filter_duplicate_rels=False, num_val_im=5000), must_overlap=True):
+def get_counts(train_data=VG(mode='train', filter_duplicate_rels=False, num_val_im=5000),
+               must_overlap=True):
     """
     Get counts of all of the relations. Used for modeling directly P(rel | o1, o2)
     :param train_data: 
@@ -34,7 +35,7 @@ def get_counts(train_data=VG(mode='train', filter_duplicate_rels=False, num_val_
 
         # For the foreground, we'll just look at everything
         o1o2 = gt_classes[gt_relations[:, :2]]
-        for (o1, o2), gtr in zip(o1o2, gt_relations[:,2]):
+        for (o1, o2), gtr in zip(o1o2, gt_relations[:, 2]):
             fg_matrix[o1, o2, gtr] += 1
 
         # For the background, get all of the things that overlap.
@@ -65,6 +66,7 @@ def box_filter(boxes, must_overlap=False):
     else:
         possible_boxes = np.column_stack(np.where(all_possib))
     return possible_boxes
+
 
 if __name__ == '__main__':
     fg, bg = get_counts(must_overlap=False)

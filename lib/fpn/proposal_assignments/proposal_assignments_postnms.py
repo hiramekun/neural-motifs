@@ -47,7 +47,7 @@ def proposal_assignments_postnms(
     gt_classes_np[:, 0] -= image_offset
     gt_rels_np[:, 0] -= image_offset
 
-    num_im = gt_classes_np[:, 0].max()+1
+    num_im = gt_classes_np[:, 0].max() + 1
 
     rois = []
     obj_labels = []
@@ -74,8 +74,8 @@ def proposal_assignments_postnms(
 
         # add a teensy bit of random noise because some GT boxes might be duplicated, etc.
         pred_boxes_i = np.concatenate((chosen_boxes_i, suppre_boxes_i, gt_boxes_i), 0)
-        ious = bbox_overlaps(pred_boxes_i, gt_boxes_i) + rand_val*(
-            np.random.rand(pred_boxes_i.shape[0], gt_boxes_i.shape[0])-0.5)
+        ious = bbox_overlaps(pred_boxes_i, gt_boxes_i) + rand_val * (
+                np.random.rand(pred_boxes_i.shape[0], gt_boxes_i.shape[0]) - 0.5)
 
         # Let's say that a box can only be assigned ONCE for now because we've already done
         # the NMS and stuff.
@@ -112,7 +112,7 @@ def proposal_assignments_postnms(
                                gt_rels_i,
                                fg_thresh=fg_thresh,
                                fg_rels_per_image=100)
-        all_rels_i[:,0:2] += num_box_seen
+        all_rels_i[:, 0:2] += num_box_seen
 
         rois.append(np.column_stack((
             im_ind * np.ones(boxes_i.shape[0], dtype=np.float32),
@@ -120,7 +120,7 @@ def proposal_assignments_postnms(
         )))
         obj_labels.append(labels_i)
         rel_labels.append(np.column_stack((
-            im_ind*np.ones(all_rels_i.shape[0], dtype=np.int64),
+            im_ind * np.ones(all_rels_i.shape[0], dtype=np.int64),
             all_rels_i,
         )))
         num_box_seen += boxes_i.size

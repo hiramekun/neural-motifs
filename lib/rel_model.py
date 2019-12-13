@@ -20,7 +20,8 @@ from lib.fpn.box_utils import bbox_overlaps, center_size
 from lib.get_union_boxes import UnionBoxesAndFeats
 from lib.fpn.proposal_assignments.rel_assignments import rel_assignments
 from lib.object_detector import ObjectDetector, gather_res, load_vgg
-from lib.pytorch_misc import transpose_packed_sequence_inds, to_onehot, arange, enumerate_by_image, diagonal_inds, Flattener
+from lib.pytorch_misc import transpose_packed_sequence_inds, to_onehot, arange, enumerate_by_image, \
+    diagonal_inds, Flattener
 from lib.sparse_targets import FrequencyBias
 from lib.surgery import filter_dets
 from lib.word_vectors import obj_edge_vectors
@@ -60,6 +61,7 @@ def _sort_by_score(im_inds, scores):
 
     return perm, inv_perm, ls_transposed
 
+
 MODES = ('sgdet', 'sgcls', 'predcls')
 
 
@@ -67,6 +69,7 @@ class LinearizedContext(nn.Module):
     """
     Module for computing the object contexts and edge contexts
     """
+
     def __init__(self, classes, rel_classes, mode='sgdet',
                  embed_dim=200, hidden_dim=256, obj_dim=2048,
                  nl_obj=2, nl_edge=2, dropout_rate=0.2, order='confidence',
@@ -109,7 +112,7 @@ class LinearizedContext(nn.Module):
 
         if self.nl_obj > 0:
             self.obj_ctx_rnn = AlternatingHighwayLSTM(
-                input_size=self.obj_dim+self.embed_dim+128,
+                input_size=self.obj_dim + self.embed_dim + 128,
                 hidden_size=self.hidden_dim,
                 num_layers=self.nl_obj,
                 recurrent_dropout_probability=dropout_rate)
@@ -145,16 +148,17 @@ class LinearizedContext(nn.Module):
         """
         cxcywh = center_size(box_priors)
         if self.order == 'size':
-            sizes = cxcywh[:,2] * cxcywh[:, 3]
+            sizes = cxcywh[:, 2] * cxcywh[:, 3]
             # sizes = (box_priors[:, 2] - box_priors[:, 0] + 1) * (box_priors[:, 3] - box_priors[:, 1] + 1)
             assert sizes.min() > 0.0
             scores = sizes / (sizes.max() + 1)
         elif self.order == 'confidence':
             scores = confidence
         elif self.order == 'random':
-            scores = torch.FloatTensor(np.random.rand(batch_idx.size(0))).cuda(batch_idx.get_device())
+            scores = torch.FloatTensor(np.random.rand(batch_idx.size(0))).cuda(
+                batch_idx.get_device())
         elif self.order == 'leftright':
-            centers = cxcywh[:,0]
+            centers = cxcywh[:, 0]
             scores = centers / (centers.max() + 1)
         else:
             raise ValueError("invalid mode {}".format(self.order))
@@ -194,7 +198,8 @@ class LinearizedContext(nn.Module):
         edge_ctx = edge_reps[inv_perm]
         return edge_ctx
 
-    def obj_ctx(self, obj_feats, obj_dists, im_inds, obj_labels=None, box_priors=None, boxes_per_cls=None):
+    def obj_ctx(self, obj_feats, obj_dists, im_inds, obj_labels=None, box_priors=None,
+                boxes_per_cls=None):
         """
         Object context and object classification.
         :param obj_feats: [num_obj, img_dim + object embedding0 dim]
@@ -216,13 +221,14 @@ class LinearizedContext(nn.Module):
         encoder_rep = self.obj_ctx_rnn(input_packed)[0][0]
         # Decode in order
         if self.mode != 'predcls':
-            decoder_inp = PackedSequence(torch.cat((obj_inp_rep, encoder_rep), 1) if self.pass_in_obj_feats_to_decoder else encoder_rep,
+            decoder_inp = PackedSequence(torch.cat((obj_inp_rep, encoder_rep),
+                                                   1) if self.pass_in_obj_feats_to_decoder else encoder_rep,
                                          ls_transposed)
             obj_dists, obj_preds = self.decoder_rnn(
-                decoder_inp, #obj_dists[perm],
+                decoder_inp,  # obj_dists[perm],
                 labels=obj_labels[perm] if obj_labels is not None else None,
                 boxes_for_nms=boxes_per_cls[perm] if boxes_per_cls is not None else None,
-                )
+            )
             obj_preds = obj_preds[inv_perm]
             obj_dists = obj_dists[inv_perm]
         else:
@@ -233,7 +239,8 @@ class LinearizedContext(nn.Module):
 
         return obj_dists, obj_preds, encoder_rep
 
-    def forward(self, obj_fmaps, obj_logits, im_inds, obj_labels=None, box_priors=None, boxes_per_cls=None):
+    def forward(self, obj_fmaps, obj_logits, im_inds, obj_labels=None, box_priors=None,
+                boxes_per_cls=None):
         """
         Forward pass through the object and edge context
         :param obj_priors:
@@ -274,13 +281,15 @@ class LinearizedContext(nn.Module):
                     boxes_ci = boxes_per_cls.data[:, c_i]
 
                     keep = apply_nms(scores_ci, boxes_ci,
-                                     pre_nms_topn=scores_ci.size(0), post_nms_topn=scores_ci.size(0),
+                                     pre_nms_topn=scores_ci.size(0),
+                                     post_nms_topn=scores_ci.size(0),
                                      nms_thresh=0.3)
                     nms_mask[:, c_i][keep] = 1
 
-                obj_preds = Variable(nms_mask * probs.data, volatile=True)[:,1:].max(1)[1] + 1
+                obj_preds = Variable(nms_mask * probs.data, volatile=True)[:, 1:].max(1)[1] + 1
             else:
-                obj_preds = obj_labels if obj_labels is not None else obj_dists2[:,1:].max(1)[1] + 1
+                obj_preds = obj_labels if obj_labels is not None else obj_dists2[:, 1:].max(1)[
+                                                                          1] + 1
             obj_ctx = obj_pre_rep
 
         edge_ctx = None
@@ -300,7 +309,9 @@ class RelModel(nn.Module):
     """
     RELATIONSHIPS
     """
-    def __init__(self, classes, rel_classes, mode='sgdet', num_gpus=1, use_vision=True, require_overlap_det=True,
+
+    def __init__(self, classes, rel_classes, mode='sgdet', num_gpus=1, use_vision=True,
+                 require_overlap_det=True,
                  embed_dim=200, hidden_dim=256, pooling_dim=2048,
                  nl_obj=1, nl_edge=2, use_resnet=False, order='confidence', thresh=0.01,
                  use_proposals=False, pass_in_obj_feats_to_decoder=True,
@@ -334,7 +345,7 @@ class RelModel(nn.Module):
         self.use_bias = use_bias
         self.use_vision = use_vision
         self.use_tanh = use_tanh
-        self.limit_vision=limit_vision
+        self.limit_vision = limit_vision
         self.require_overlap = require_overlap_det and self.mode == 'sgdet'
 
         self.detector = ObjectDetector(
@@ -366,7 +377,8 @@ class RelModel(nn.Module):
         else:
             roi_fmap = [
                 Flattener(),
-                load_vgg(use_dropout=False, use_relu=False, use_linear=pooling_dim == 4096, pretrained=False).classifier,
+                load_vgg(use_dropout=False, use_relu=False, use_linear=pooling_dim == 4096,
+                         pretrained=False).classifier,
             ]
             if pooling_dim != 4096:
                 roi_fmap.append(nn.Linear(4096, pooling_dim))
@@ -384,7 +396,7 @@ class RelModel(nn.Module):
         self.post_lstm.bias.data.zero_()
 
         if nl_edge == 0:
-            self.post_emb = nn.Embedding(self.num_classes, self.pooling_dim*2)
+            self.post_emb = nn.Embedding(self.num_classes, self.pooling_dim * 2)
             self.post_emb.weight.data.normal_(0, math.sqrt(1.0))
 
         self.rel_compress = nn.Linear(self.pooling_dim, self.num_rels, bias=True)
@@ -448,7 +460,8 @@ class RelModel(nn.Module):
         return self.roi_fmap_obj(feature_pool.view(rois.size(0), -1))
 
     def forward(self, x, im_sizes, image_offset,
-                gt_boxes=None, gt_classes=None, gt_rels=None, proposals=None, train_anchor_inds=None,
+                gt_boxes=None, gt_classes=None, gt_rels=None, proposals=None,
+                train_anchor_inds=None,
                 return_fmap=False):
         """
         Forward pass for detection
@@ -514,7 +527,7 @@ class RelModel(nn.Module):
             vr = self.visual_rep(result.fmap.detach(), rois, rel_inds[:, 1:])
             if self.limit_vision:
                 # exact value TBD
-                prod_rep = torch.cat((prod_rep[:,:2048] * vr[:,:2048], prod_rep[:,2048:]), 1)
+                prod_rep = torch.cat((prod_rep[:, :2048] * vr[:, :2048], prod_rep[:, 2048:]), 1)
             else:
                 prod_rep = prod_rep * vr
 

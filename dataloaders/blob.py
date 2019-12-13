@@ -27,7 +27,7 @@ class Blob(object):
         self.all_anchor_inds = []  # [all_anchors, 2] array of (img_ind, anchor_idx). Only has valid
         # boxes (meaning some are gonna get cut out)
         self.all_anchors = []  # [num_im, IM_SCALE/4, IM_SCALE/4, num_anchors, 4] shapes. Anchors outside get squashed
-                               # to 0
+        # to 0
         self.gt_boxes = []  # [num_gt, 4] boxes
         self.gt_classes = []  # [num_gt,2] array of img_ind, class
         self.gt_rels = []  # [num_rels, 3]. Each row is (gtbox0, gtbox1, rel).
@@ -102,10 +102,9 @@ class Blob(object):
             )))
 
         if 'proposals' in d:
-            self.proposals.append(np.column_stack((i * np.ones(d['proposals'].shape[0], dtype=np.float32),
-                                                   d['scale'] * d['proposals'].astype(np.float32))))
-
-
+            self.proposals.append(
+                np.column_stack((i * np.ones(d['proposals'].shape[0], dtype=np.float32),
+                                 d['scale'] * d['proposals'].astype(np.float32))))
 
     def _chunkize(self, datom, tensor=torch.LongTensor):
         """
@@ -141,9 +140,8 @@ class Blob(object):
             self.train_anchor_inds = self.train_anchor_labels[:, :-1].contiguous()
 
         if len(self.proposals) != 0:
-            self.proposals, self.proposal_chunks = self._chunkize(self.proposals, tensor=torch.FloatTensor)
-
-
+            self.proposals, self.proposal_chunks = self._chunkize(self.proposals,
+                                                                  tensor=torch.FloatTensor)
 
     def _scatter(self, x, chunk_sizes, dim=0):
         """ Helper function"""
@@ -214,7 +212,8 @@ class Blob(object):
             if self.is_train:
                 return (self.imgs, self.im_sizes[0], image_offset,
                         self.gt_boxes, self.gt_classes, rels, proposals, self.train_anchor_inds)
-            return self.imgs, self.im_sizes[0], image_offset, self.gt_boxes, self.gt_classes, rels, proposals
+            return self.imgs, self.im_sizes[
+                0], image_offset, self.gt_boxes, self.gt_classes, rels, proposals
 
         # Otherwise proposals is None
         assert proposals is None
@@ -223,8 +222,8 @@ class Blob(object):
         # TODO: Return a namedtuple
         if self.is_train:
             return (
-            self.imgs[index], self.im_sizes[index], image_offset,
-            self.gt_boxes[index], self.gt_classes[index], rels_i, None, self.train_anchor_inds[index])
+                self.imgs[index], self.im_sizes[index], image_offset,
+                self.gt_boxes[index], self.gt_classes[index], rels_i, None,
+                self.train_anchor_inds[index])
         return (self.imgs[index], self.im_sizes[index], image_offset,
                 self.gt_boxes[index], self.gt_classes[index], rels_i, None)
-

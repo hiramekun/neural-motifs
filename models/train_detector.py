@@ -36,7 +36,8 @@ else:
                                                    num_gpus=conf.num_gpus)
 
 detector = ObjectDetector(classes=train.ind_to_classes, num_gpus=conf.num_gpus,
-                          mode='rpntrain' if not conf.use_proposals else 'proposals', use_resnet=conf.use_resnet)
+                          mode='rpntrain' if not conf.use_proposals else 'proposals',
+                          use_resnet=conf.use_resnet)
 detector.cuda()
 
 # Note: if you're doing the stanford setup, you'll need to change this to freeze the lower layers
@@ -46,7 +47,8 @@ if conf.use_proposals:
             param.requires_grad = False
 
 optimizer = optim.SGD([p for p in detector.parameters() if p.requires_grad],
-                      weight_decay=conf.l2, lr=conf.lr * conf.num_gpus * conf.batch_size, momentum=0.9)
+                      weight_decay=conf.l2, lr=conf.lr * conf.num_gpus * conf.batch_size,
+                      momentum=0.9)
 scheduler = ReduceLROnPlateau(optimizer, 'max', patience=3, factor=0.1,
                               verbose=True, threshold=0.001, threshold_mode='abs', cooldown=1)
 
@@ -68,7 +70,8 @@ def train_epoch(epoch_num):
             mn = pd.concat(tr[-conf.print_interval:], axis=1).mean(1)
             time_per_batch = (time.time() - start) / conf.print_interval
             print("\ne{:2d}b{:5d}/{:5d} {:.3f}s/batch, {:.1f}m/epoch".format(
-                epoch_num, b, len(train_loader), time_per_batch, len(train_loader) * time_per_batch / 60))
+                epoch_num, b, len(train_loader), time_per_batch,
+                len(train_loader) * time_per_batch / 60))
             print(mn)
             print('-----------', flush=True)
             start = time.time()
@@ -132,7 +135,8 @@ def train_batch(b):
         #     fg_cnt, bg_cnt, fg_cnt / (fg_cnt + bg_cnt + 1e-4), FG_FRACTION,
         #     train_valid_inds.size(0), train_anchor_labels.size(0)-train_valid_inds.size(0),
         #     train_valid_inds.size(0) / (train_anchor_labels.size(0) + 1e-4), RPN_FG_FRACTION), flush=True)
-        rpn_box_mult = 2 * (1. / RPN_FG_FRACTION) * train_valid_inds.size(0) / (train_anchor_labels.size(0) + 1e-4)
+        rpn_box_mult = 2 * (1. / RPN_FG_FRACTION) * train_valid_inds.size(0) / (
+                train_anchor_labels.size(0) + 1e-4)
         rpn_box_loss = bbox_loss(train_anchors[train_valid_inds],
                                  rpn_box_deltas[train_valid_inds],
                                  train_anchor_targets[train_valid_inds]) * rpn_box_mult

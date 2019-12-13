@@ -3,6 +3,8 @@
 from PIL import Image, ImageOps, ImageFilter, ImageEnhance
 import numpy as np
 from random import randint
+
+
 # All of these need to be called on PIL imagez
 
 class SquarePad(object):
@@ -17,6 +19,7 @@ class Grayscale(object):
     """
     Converts to grayscale (not always, sometimes).
     """
+
     def __call__(self, img):
         factor = np.sqrt(np.sqrt(np.random.rand(1)))
         # print("gray {}".format(factor))
@@ -28,8 +31,9 @@ class Brightness(object):
     """
     Converts to grayscale (not always, sometimes).
     """
+
     def __call__(self, img):
-        factor = np.random.randn(1)/6+1
+        factor = np.random.randn(1) / 6 + 1
         factor = min(max(factor, 0.5), 1.5)
         # print("brightness {}".format(factor))
 
@@ -41,8 +45,9 @@ class Contrast(object):
     """
     Converts to grayscale (not always, sometimes).
     """
+
     def __call__(self, img):
-        factor = np.random.randn(1)/8+1.0
+        factor = np.random.randn(1) / 8 + 1.0
         factor = min(max(factor, 0.5), 1.5)
         # print("contrast {}".format(factor))
 
@@ -54,14 +59,15 @@ class Hue(object):
     """
     Converts to grayscale
     """
+
     def __call__(self, img):
         # 30 seems good
-        factor = int(np.random.randn(1)*8)
+        factor = int(np.random.randn(1) * 8)
         factor = min(max(factor, -30), 30)
         factor = np.array(factor, dtype=np.uint8)
 
         hsv = np.array(img.convert('HSV'))
-        hsv[:,:,0] += factor
+        hsv[:, :, 0] += factor
         new_img = Image.fromarray(hsv, 'HSV').convert('RGB')
 
         return new_img
@@ -71,8 +77,9 @@ class Sharpness(object):
     """
     Converts to grayscale
     """
+
     def __call__(self, img):
-        factor = 1.0 + np.random.randn(1)/5
+        factor = 1.0 + np.random.randn(1) / 5
         # print("sharpness {}".format(factor))
         enhancer = ImageEnhance.Sharpness(img)
         return enhancer.enhance(factor)
@@ -90,9 +97,9 @@ def random_crop(img, boxes, box_scale, round_boxes=True, max_crop_fraction=0.1):
 
     w, h = img.size
 
-    max_crop_w = int(w*max_crop_fraction)
-    max_crop_h = int(h*max_crop_fraction)
-    boxes_scaled = boxes * max(w,h) / box_scale
+    max_crop_w = int(w * max_crop_fraction)
+    max_crop_h = int(h * max_crop_fraction)
+    boxes_scaled = boxes * max(w, h) / box_scale
     max_to_crop_top = min(int(boxes_scaled[:, 1].min()), max_crop_h)
     max_to_crop_left = min(int(boxes_scaled[:, 0].min()), max_crop_w)
     max_to_crop_right = min(int(w - boxes_scaled[:, 2].max()), max_crop_w)
@@ -105,7 +112,8 @@ def random_crop(img, boxes, box_scale, round_boxes=True, max_crop_fraction=0.1):
     img_cropped = img.crop((crop_left, crop_top, w - crop_right, h - crop_bottom))
 
     new_boxes = box_scale / max(img_cropped.size) * np.column_stack(
-        (boxes_scaled[:,0]-crop_left, boxes_scaled[:,1]-crop_top, boxes_scaled[:,2]-crop_left, boxes_scaled[:,3]-crop_top))
+        (boxes_scaled[:, 0] - crop_left, boxes_scaled[:, 1] - crop_top,
+         boxes_scaled[:, 2] - crop_left, boxes_scaled[:, 3] - crop_top))
 
     if round_boxes:
         new_boxes = np.round(new_boxes).astype(np.int32)

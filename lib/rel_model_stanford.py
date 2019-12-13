@@ -15,7 +15,8 @@ from lib.rel_model import RelModel
 
 MODES = ('sgdet', 'sgcls', 'predcls')
 
-SIZE=512
+SIZE = 512
+
 
 class RelModelStanford(RelModel):
     """
@@ -32,7 +33,8 @@ class RelModelStanford(RelModel):
         super(RelModelStanford, self).__init__(classes, rel_classes, mode=mode, num_gpus=num_gpus,
                                                require_overlap_det=require_overlap_det,
                                                use_resnet=use_resnet,
-                                               nl_obj=0, nl_edge=0, use_proposals=use_proposals, thresh=0.01,
+                                               nl_obj=0, nl_edge=0, use_proposals=use_proposals,
+                                               thresh=0.01,
                                                pooling_dim=4096)
 
         del self.context
@@ -45,17 +47,16 @@ class RelModelStanford(RelModel):
         self.obj_unary = nn.Linear(self.obj_dim, SIZE)
         self.edge_unary = nn.Linear(4096, SIZE)
 
-
         self.edge_gru = nn.GRUCell(input_size=SIZE, hidden_size=SIZE)
         self.node_gru = nn.GRUCell(input_size=SIZE, hidden_size=SIZE)
 
         self.n_iter = 3
 
-        self.sub_vert_w_fc = nn.Sequential(nn.Linear(SIZE*2, 1), nn.Sigmoid())
-        self.obj_vert_w_fc = nn.Sequential(nn.Linear(SIZE*2, 1), nn.Sigmoid())
-        self.out_edge_w_fc = nn.Sequential(nn.Linear(SIZE*2, 1), nn.Sigmoid())
+        self.sub_vert_w_fc = nn.Sequential(nn.Linear(SIZE * 2, 1), nn.Sigmoid())
+        self.obj_vert_w_fc = nn.Sequential(nn.Linear(SIZE * 2, 1), nn.Sigmoid())
+        self.out_edge_w_fc = nn.Sequential(nn.Linear(SIZE * 2, 1), nn.Sigmoid())
 
-        self.in_edge_w_fc = nn.Sequential(nn.Linear(SIZE*2, 1), nn.Sigmoid())
+        self.in_edge_w_fc = nn.Sequential(nn.Linear(SIZE * 2, 1), nn.Sigmoid())
 
     def message_pass(self, rel_rep, obj_rep, rel_inds):
         """
@@ -105,11 +106,12 @@ class RelModelStanford(RelModel):
 
         # woohoo! done
         return self.obj_fc(vert_factor[-1]), self.rel_fc(edge_factor[-1])
-               # self.box_fc(vert_factor[-1]).view(-1, self.num_classes, 4), \
-               # self.rel_fc(edge_factor[-1])
+        # self.box_fc(vert_factor[-1]).view(-1, self.num_classes, 4), \
+        # self.rel_fc(edge_factor[-1])
 
     def forward(self, x, im_sizes, image_offset,
-                gt_boxes=None, gt_classes=None, gt_rels=None, proposals=None, train_anchor_inds=None,
+                gt_boxes=None, gt_classes=None, gt_rels=None, proposals=None,
+                train_anchor_inds=None,
                 return_fmap=False):
         """
         Forward pass for detection
@@ -143,7 +145,8 @@ class RelModelStanford(RelModel):
             assert self.mode == 'sgdet'
             result.rel_labels = rel_assignments(im_inds.data, boxes.data, result.rm_obj_labels.data,
                                                 gt_boxes.data, gt_classes.data, gt_rels.data,
-                                                image_offset, filter_non_overlap=True, num_sample_per_gt=1)
+                                                image_offset, filter_non_overlap=True,
+                                                num_sample_per_gt=1)
         rel_inds = self.get_rel_inds(result.rel_labels, im_inds, boxes)
         rois = torch.cat((im_inds[:, None].float(), boxes), 1)
         visual_rep = self.visual_rep(result.fmap, rois, rel_inds[:, 1:])
@@ -165,15 +168,15 @@ class RelModelStanford(RelModel):
             result.obj_scores = result.rm_obj_dists.data.new(gt_classes.size(0)).fill_(1)
             result.obj_preds = gt_classes.data[:, 1]
         elif self.mode == 'sgdet':
-            order, obj_scores, obj_preds= filter_det(F.softmax(result.rm_obj_dists),
-                                                              result.boxes_all,
-                                                              start_ind=0,
-                                                              max_per_img=100,
-                                                              thresh=0.00,
-                                                              pre_nms_topn=6000,
-                                                              post_nms_topn=300,
-                                                              nms_thresh=0.3,
-                                                              nms_filter_duplicates=True)
+            order, obj_scores, obj_preds = filter_det(F.softmax(result.rm_obj_dists),
+                                                      result.boxes_all,
+                                                      start_ind=0,
+                                                      max_per_img=100,
+                                                      thresh=0.00,
+                                                      pre_nms_topn=6000,
+                                                      post_nms_topn=300,
+                                                      nms_thresh=0.3,
+                                                      nms_filter_duplicates=True)
             idx, perm = torch.sort(order)
             result.obj_preds = rel_inds.new(result.rm_obj_dists.size(0)).fill_(1)
             result.obj_scores = result.rm_obj_dists.data.new(result.rm_obj_dists.size(0)).fill_(0)
@@ -183,8 +186,8 @@ class RelModelStanford(RelModel):
             scores_nz = F.softmax(result.rm_obj_dists).data
             scores_nz[:, 0] = 0.0
             result.obj_scores, score_ord = scores_nz[:, 1:].sort(dim=1, descending=True)
-            result.obj_preds = score_ord[:,0] + 1
-            result.obj_scores = result.obj_scores[:,0]
+            result.obj_preds = score_ord[:, 0] + 1
+            result.obj_scores = result.obj_scores[:, 0]
 
         result.obj_preds = Variable(result.obj_preds)
         result.obj_scores = Variable(result.obj_scores)
@@ -202,4 +205,3 @@ class RelModelStanford(RelModel):
 
         return filter_dets(bboxes, result.obj_scores,
                            result.obj_preds, rel_inds[:, 1:], rel_rep)
-

@@ -35,7 +35,8 @@ def block_orthogonal(tensor, split_sizes, gain=1.0):
     sizes = list(tensor.size())
     if any([a % b != 0 for a, b in zip(sizes, split_sizes)]):
         raise ValueError("tensor dimensions must be divisible by their respective "
-                         "split_sizes. Found size: {} and split_sizes: {}".format(sizes, split_sizes))
+                         "split_sizes. Found size: {} and split_sizes: {}".format(sizes,
+                                                                                  split_sizes))
     indexes = [list(range(0, max_size, split))
                for max_size, split in zip(sizes, split_sizes)]
     # Iterate over all possible blocks within the tensor.
@@ -81,7 +82,8 @@ class _AlternatingHighwayLSTMFunction(Function):
         tmp_i = inputs.new(batch_size, 6 * self.hidden_size)
         tmp_h = inputs.new(batch_size, 5 * self.hidden_size)
         is_training = 1 if self.train else 0
-        highway_lstm_layer.highway_lstm_forward_cuda(input_size,  # type: ignore # pylint: disable=no-member
+        highway_lstm_layer.highway_lstm_forward_cuda(input_size,
+                                                     # type: ignore # pylint: disable=no-member
                                                      self.hidden_size,
                                                      batch_size,
                                                      self.num_layers,
@@ -115,7 +117,8 @@ class _AlternatingHighwayLSTMFunction(Function):
 
         inputs = inputs.contiguous()
         sequence_length, batch_size, input_size = inputs.size()
-        parameters_need_grad = 1 if self.needs_input_grad[1] else 0  # pylint: disable=unsubscriptable-object
+        parameters_need_grad = 1 if self.needs_input_grad[
+            1] else 0  # pylint: disable=unsubscriptable-object
 
         grad_input = inputs.new().resize_as_(inputs).zero_()
         grad_state_accumulator = inputs.new().resize_as_(state_accumulator).zero_()
@@ -277,10 +280,13 @@ class AlternatingHighwayLSTM(torch.nn.Module):
 
         sequence_length, batch_size, _ = inputs.size()
         accumulator_shape = [self.num_layers, sequence_length + 1, batch_size, self.hidden_size]
-        state_accumulator = Variable(inputs.data.new(*accumulator_shape).zero_(), requires_grad=False)
-        memory_accumulator = Variable(inputs.data.new(*accumulator_shape).zero_(), requires_grad=False)
+        state_accumulator = Variable(inputs.data.new(*accumulator_shape).zero_(),
+                                     requires_grad=False)
+        memory_accumulator = Variable(inputs.data.new(*accumulator_shape).zero_(),
+                                      requires_grad=False)
 
-        dropout_weights = inputs.data.new().resize_(self.num_layers, batch_size, self.hidden_size).fill_(1.0)
+        dropout_weights = inputs.data.new().resize_(self.num_layers, batch_size,
+                                                    self.hidden_size).fill_(1.0)
         if self.training:
             # Normalize by 1 - dropout_prob to preserve the output statistics of the layer.
             dropout_weights.bernoulli_(1 - self.recurrent_dropout_probability) \

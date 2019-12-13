@@ -1,10 +1,10 @@
-
 import numpy as np
 import numpy.random as npr
 from config import BG_THRESH_HI, BG_THRESH_LO, FG_FRACTION, ROIS_PER_IMG
 from lib.fpn.box_utils import bbox_overlaps
 from lib.pytorch_misc import to_variable
 import torch
+
 
 #############################################################
 # The following is only for object detection
@@ -114,4 +114,3 @@ def _sel_inds(max_overlaps, fg_thresh=0.5, fg_rois_per_image=128, rois_per_image
         bg_inds = npr.choice(bg_inds, size=bg_rois_per_this_image, replace=False)
 
     return np.append(fg_inds, bg_inds), fg_rois_per_this_image
-

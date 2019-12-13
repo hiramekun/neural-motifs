@@ -1,4 +1,3 @@
-
 from dataloaders.visual_genome import VGDataLoader, VG
 import numpy as np
 import torch
@@ -20,8 +19,8 @@ else:
     raise ValueError()
 
 train, val, test = VG.splits(num_val_im=conf.val_size, filter_duplicate_rels=True,
-                          use_proposals=conf.use_proposals,
-                          filter_non_overlap=conf.mode == 'sgdet')
+                             use_proposals=conf.use_proposals,
+                             filter_non_overlap=conf.mode == 'sgdet')
 if conf.test:
     val = test
 train_loader, val_loader = VGDataLoader.splits(train, val, mode='rel',
@@ -43,7 +42,6 @@ detector = RelModel(classes=train.ind_to_classes, rel_classes=train.ind_to_predi
                     limit_vision=conf.limit_vision
                     )
 
-
 detector.cuda()
 ckpt = torch.load(conf.ckpt)
 
@@ -56,6 +54,8 @@ optimistic_restore(detector, ckpt['state_dict'])
 #     detector.detector.score_fc.bias.data.copy_(det_ckpt['score_fc.bias'])
 
 all_pred_entries = []
+
+
 def val_batch(batch_num, b, evaluator, thrs=(20, 50, 100)):
     det_res = detector[b]
     if conf.num_gpus == 1:
@@ -67,11 +67,11 @@ def val_batch(batch_num, b, evaluator, thrs=(20, 50, 100)):
             'gt_relations': val.relationships[batch_num + i].copy(),
             'gt_boxes': val.gt_boxes[batch_num + i].copy(),
         }
-        assert np.all(objs_i[rels_i[:,0]] > 0) and np.all(objs_i[rels_i[:,1]] > 0)
+        assert np.all(objs_i[rels_i[:, 0]] > 0) and np.all(objs_i[rels_i[:, 1]] > 0)
         # assert np.all(rels_i[:,2] > 0)
 
         pred_entry = {
-            'pred_boxes': boxes_i * BOX_SCALE/IM_SCALE,
+            'pred_boxes': boxes_i * BOX_SCALE / IM_SCALE,
             'pred_classes': objs_i,
             'pred_rel_inds': rels_i,
             'obj_scores': obj_scores_i,
@@ -84,10 +84,11 @@ def val_batch(batch_num, b, evaluator, thrs=(20, 50, 100)):
             pred_entry,
         )
 
+
 evaluator = BasicSceneGraphEvaluator.all_modes(multiple_preds=conf.multi_pred)
 if conf.cache is not None and os.path.exists(conf.cache):
     print("Found {}! Loading from it".format(conf.cache))
-    with open(conf.cache,'rb') as f:
+    with open(conf.cache, 'rb') as f:
         all_pred_entries = pkl.load(f)
     for i, pred_entry in enumerate(tqdm(all_pred_entries)):
         gt_entry = {
@@ -103,10 +104,10 @@ if conf.cache is not None and os.path.exists(conf.cache):
 else:
     detector.eval()
     for val_b, batch in enumerate(tqdm(val_loader)):
-        val_batch(conf.num_gpus*val_b, batch, evaluator)
+        val_batch(conf.num_gpus * val_b, batch, evaluator)
 
     evaluator[conf.mode].print_stats()
 
     if conf.cache is not None:
-        with open(conf.cache,'wb') as f:
+        with open(conf.cache, 'wb') as f:
             pkl.dump(all_pred_entries, f)

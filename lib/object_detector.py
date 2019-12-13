@@ -115,7 +115,8 @@ class ObjectDetector(nn.Module):
         Each one is [batch_size, dim, IM_SIZE/k, IM_SIZE/k].
         """
         if not self.use_resnet:
-            return self.features(x)  # Uncomment this for "stanford" setting in which it's frozen:      .detach()
+            return self.features(
+                x)  # Uncomment this for "stanford" setting in which it's frozen:      .detach()
         x = self.features.conv1(x)
         x = self.features.bn1(x)
         x = self.features.relu(x)
@@ -164,8 +165,9 @@ class ObjectDetector(nn.Module):
                                                                     image_offset)
 
             if gt_rels is not None and self.mode == 'rpntrain':
-                raise ValueError("Training the object detector and the relationship model with detection"
-                                 "at the same time isn't supported")
+                raise ValueError(
+                    "Training the object detector and the relationship model with detection"
+                    "at the same time isn't supported")
 
             if self.mode == 'refinerels':
                 all_rois = Variable(rois)
@@ -223,7 +225,8 @@ class ObjectDetector(nn.Module):
 
         return rois, labels, None, None, None, rel_labels
 
-    def proposal_boxes(self, fmap, im_sizes, image_offset, gt_boxes=None, gt_classes=None, gt_rels=None,
+    def proposal_boxes(self, fmap, im_sizes, image_offset, gt_boxes=None, gt_classes=None,
+                       gt_rels=None,
                        train_anchor_inds=None, proposals=None):
         """
         Gets boxes from the RPN
@@ -238,7 +241,8 @@ class ObjectDetector(nn.Module):
         """
         assert proposals is not None
 
-        rois = filter_roi_proposals(proposals[:, 2:].data.contiguous(), proposals[:, 1].data.contiguous(),
+        rois = filter_roi_proposals(proposals[:, 2:].data.contiguous(),
+                                    proposals[:, 1].data.contiguous(),
                                     np.array([2000] * len(im_sizes)),
                                     nms_thresh=0.7,
                                     pre_nms_topn=12000 if self.training and self.mode == 'rpntrain' else 6000,
@@ -272,7 +276,8 @@ class ObjectDetector(nn.Module):
         return fn(*args, **kwargs)
 
     def forward(self, x, im_sizes, image_offset,
-                gt_boxes=None, gt_classes=None, gt_rels=None, proposals=None, train_anchor_inds=None,
+                gt_boxes=None, gt_classes=None, gt_rels=None, proposals=None,
+                train_anchor_inds=None,
                 return_fmap=False):
         """
         Forward pass for detection
@@ -304,7 +309,8 @@ class ObjectDetector(nn.Module):
 
         od_box_priors = rois[:, 1:]
 
-        if (not self.training and not self.mode == 'gtbox') or self.mode in ('proposals', 'refinerels'):
+        if (not self.training and not self.mode == 'gtbox') or self.mode in (
+        'proposals', 'refinerels'):
             nms_inds, nms_scores, nms_preds, nms_boxes_assign, nms_boxes, nms_imgs = self.nms_boxes(
                 od_obj_dists,
                 rois,
@@ -592,12 +598,14 @@ class RPNHead(nn.Module):
         sizes = center_size(box_preds.view(-1, 4))
         class_preds.view(-1)[(sizes[:, 2] < 4) | (sizes[:, 3] < 4)] = -0.01
         return filter_roi_proposals(box_preds.view(-1, 4), class_preds.view(-1),
-                                    boxes_per_im=np.array([np.prod(box_preds.size()[1:-1])] * fmap.size(0)),
+                                    boxes_per_im=np.array(
+                                        [np.prod(box_preds.size()[1:-1])] * fmap.size(0)),
                                     nms_thresh=nms_thresh,
                                     pre_nms_topn=pre_nms_topn, post_nms_topn=post_nms_topn)
 
 
-def filter_roi_proposals(box_preds, class_preds, boxes_per_im, nms_thresh=0.7, pre_nms_topn=12000, post_nms_topn=2000):
+def filter_roi_proposals(box_preds, class_preds, boxes_per_im, nms_thresh=0.7, pre_nms_topn=12000,
+                         post_nms_topn=2000):
     inds, im_per = apply_nms(
         class_preds,
         box_preds,

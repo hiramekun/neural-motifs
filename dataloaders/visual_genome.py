@@ -13,7 +13,8 @@ from torch.utils.data import Dataset
 from torchvision.transforms import Resize, Compose, ToTensor, Normalize
 from dataloaders.blob import Blob
 from lib.fpn.box_intersections_cpu.bbox import bbox_overlaps
-from config import VG_IMAGES, IM_DATA_FN, VG_SGG_FN, VG_SGG_DICT_FN, BOX_SCALE, IM_SCALE, PROPOSAL_FN
+from config import VG_IMAGES, IM_DATA_FN, VG_SGG_FN, VG_SGG_DICT_FN, BOX_SCALE, IM_SCALE, \
+    PROPOSAL_FN
 from dataloaders.image_transforms import SquarePad, Grayscale, Brightness, Sharpness, Contrast, \
     RandomOrder, Hue, random_crop
 from collections import defaultdict
@@ -120,7 +121,8 @@ class VG(Dataset):
             'info': {'description': 'ayy lmao'},
             'images': [{'id': i} for i in range(self.__len__())],
             'categories': [{'supercategory': 'person',
-                               'id': i, 'name': name} for i, name in enumerate(self.ind_to_classes) if name != '__background__'],
+                            'id': i, 'name': name} for i, name in enumerate(self.ind_to_classes) if
+                           name != '__background__'],
             'annotations': anns,
         }
         fauxcoco.createIndex()
@@ -181,7 +183,7 @@ class VG(Dataset):
             all_rel_sets = defaultdict(list)
             for (o0, o1, r) in gt_rels:
                 all_rel_sets[(o0, o1)].append(r)
-            gt_rels = [(k[0], k[1], np.random.choice(v)) for k,v in all_rel_sets.items()]
+            gt_rels = [(k[0], k[1], np.random.choice(v)) for k, v in all_rel_sets.items()]
             gt_rels = np.array(gt_rels)
 
         entry = {
@@ -300,7 +302,6 @@ def load_graphs(graphs_file, mode='train', num_im=-1, num_val_im=0, filter_empty
         elif mode == 'train':
             image_index = image_index[num_val_im:]
 
-
     split_mask = np.zeros_like(data_split).astype(bool)
     split_mask[image_index] = True
 
@@ -413,7 +414,7 @@ class VGDataLoader(torch.utils.data.DataLoader):
         )
         val_load = cls(
             dataset=val_data,
-            batch_size=batch_size * num_gpus if mode=='det' else num_gpus,
+            batch_size=batch_size * num_gpus if mode == 'det' else num_gpus,
             shuffle=False,
             num_workers=num_workers,
             collate_fn=lambda x: vg_collate(x, mode=mode, num_gpus=num_gpus, is_train=False),

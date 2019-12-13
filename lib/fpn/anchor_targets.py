@@ -13,7 +13,7 @@ from lib.fpn.box_intersections_cpu.bbox import bbox_overlaps
 from lib.fpn.generate_anchors import generate_anchors
 
 
-def anchor_target_layer(gt_boxes, im_size, 
+def anchor_target_layer(gt_boxes, im_size,
                         allowed_border=0):
     """
     Assign anchors to ground-truth targets. Produces anchor classification
@@ -48,7 +48,9 @@ def anchor_target_layer(gt_boxes, im_size,
     )[0]
     good_ans_flat = ans_np_flat[inds_inside]
     if good_ans_flat.size == 0:
-        raise ValueError("There were no good anchors for an image of size {} with boxes {}".format(im_size, gt_boxes))
+        raise ValueError(
+            "There were no good anchors for an image of size {} with boxes {}".format(im_size,
+                                                                                      gt_boxes))
 
     # overlaps between the anchors and the gt boxes [num_anchors, num_gtboxes]
     overlaps = bbox_overlaps(good_ans_flat, gt_boxes)
@@ -79,7 +81,6 @@ def anchor_target_layer(gt_boxes, im_size,
         labels[npr.choice(bg_inds, size=(len(bg_inds) - num_bg), replace=False)] = -1
     # print("{} fg {} bg ratio{:.3f} inds inside {}".format(RPN_BATCHSIZE-num_bg, num_bg, (RPN_BATCHSIZE-num_bg)/RPN_BATCHSIZE, inds_inside.shape[0]))
 
-
     # Get the labels at the original size
     labels_unmap = (-1) * np.ones(ans_np_flat.shape[0], dtype=np.int64)
     labels_unmap[inds_inside] = labels
@@ -95,7 +96,6 @@ def anchor_target_layer(gt_boxes, im_size,
     labels = labels[anchor_inds_flat]
 
     assert np.all(labels >= 0)
-
 
     # Anchors: [num_used, 4]
     # Anchor_inds: [num_used, 3] (h, w, A)

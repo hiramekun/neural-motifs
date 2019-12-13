@@ -23,13 +23,13 @@ def proposal_assignments_gtbox(rois, gt_boxes, gt_classes, gt_rels, image_offset
         bbox_targets [num_rois, 4] array of targets for the labels.
         rel_labels: [num_rels, 4] (img ind, box0 ind, box1ind, rel type)
     """
-    im_inds = rois[:,0].long()
+    im_inds = rois[:, 0].long()
 
     num_im = im_inds[-1] + 1
 
     # Offset the image indices in fg_rels to refer to absolute indices (not just within img i)
     fg_rels = gt_rels.clone()
-    fg_rels[:,0] -= image_offset
+    fg_rels[:, 0] -= image_offset
     offset = {}
     for i, s, e in enumerate_by_image(im_inds):
         offset[i] = s
@@ -52,7 +52,7 @@ def proposal_assignments_gtbox(rois, gt_boxes, gt_classes, gt_rels, image_offset
     # NOW WE HAVE TO EXCLUDE THE FGs.
     # TODO: check if this causes an error if many duplicate GTs havent been filtered out
 
-    is_cand.view(-1)[fg_rels[:,1]*im_inds.size(0) + fg_rels[:,2]] = 0
+    is_cand.view(-1)[fg_rels[:, 1] * im_inds.size(0) + fg_rels[:, 2]] = 0
     is_bgcand = is_cand.nonzero()
     # TODO: make this sample on a per image case
     # If too many then sample
@@ -76,12 +76,11 @@ def proposal_assignments_gtbox(rois, gt_boxes, gt_classes, gt_rels, image_offset
     else:
         rel_labels = fg_rels
 
-
     # last sort by rel.
-    _, perm = torch.sort(rel_labels[:, 0]*(gt_boxes.size(0)**2) +
-                         rel_labels[:,1]*gt_boxes.size(0) + rel_labels[:,2])
+    _, perm = torch.sort(rel_labels[:, 0] * (gt_boxes.size(0) ** 2) +
+                         rel_labels[:, 1] * gt_boxes.size(0) + rel_labels[:, 2])
 
     rel_labels = rel_labels[perm].contiguous()
 
-    labels = gt_classes[:,1].contiguous()
+    labels = gt_classes[:, 1].contiguous()
     return rois, labels, rel_labels
